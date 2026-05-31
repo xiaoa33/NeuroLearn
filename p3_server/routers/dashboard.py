@@ -1,3 +1,10 @@
-# 仪表盘数据路由
-# GET /api/dashboard/summary → 返回仪表盘所需汇总数据：
-#                               今日到期卡片数、连续学习天数、各章节平均记忆强度、最近状态记录
+from fastapi import APIRouter
+
+from ..schemas.dashboard import DashboardSummary
+
+router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+
+
+@router.get("/summary", response_model=DashboardSummary)
+async def get_dashboard_summary():
+    pass
