@@ -1,3 +1,7 @@
-# 环境变量与配置读取
-# 从 .env 文件读取 DEEPSEEK_API_KEY、DATABASE_URL 等配置项
-# 其他模块通过此文件获取配置，不直接读取环境变量
+import os
+
+
+DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DATABASE_PATH: str = os.getenv("DATABASE_PATH", "../p2_knowledge/neurolearn.db")
+CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
