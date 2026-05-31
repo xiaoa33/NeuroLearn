@@ -1,0 +1,5 @@
+# 题目生成 Prompt 模板
+# 供 generate_questions.py 调用 DeepSeek 时使用
+# 要求 LLM 针对每张卡片生成3道题，JSON 格式输出，包含：
+#   stem、options、answer、explanation、type、difficulty
+# 修改此文件可迭代题目质量，无需改动代码

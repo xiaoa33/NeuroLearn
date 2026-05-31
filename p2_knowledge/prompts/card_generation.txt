@@ -1,0 +1,5 @@
+# 卡片生成 Prompt 模板
+# 供 generate_cards.py 调用 DeepSeek 时使用
+# 要求 LLM 以 JSON 数组格式输出，每张卡片包含：
+#   concept、front、back、difficulty(1/2/3)、related_concepts
+# 修改此文件可迭代卡片质量，无需改动代码
