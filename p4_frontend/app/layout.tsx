@@ -1,3 +1,30 @@
-// 根布局文件
-// 包裹所有页面，渲染左侧固定导航栏(Sidebar)和顶部状态栏(TopBar)
-// 在此初始化 Zustand sessionStore，页面加载时自动调用 sessions/start 创建会话
+'use client';
+
+import './globals.css';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { TopBar } from '@/components/layout/TopBar';
+import { useSession } from '@/hooks/useSession';
+import { BehaviorTracker } from '@/components/state/BehaviorTracker';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  useSession();
+
+  return (
+    <html lang="zh-CN">
+      <body className="bg-gray-50">
+        <Sidebar />
+        <TopBar />
+        <main className="ml-16 pt-16 min-h-screen">
+          <div className="p-6">
+            {children}
+          </div>
+        </main>
+        <BehaviorTracker />
+      </body>
+    </html>
+  );
+}

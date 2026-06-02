@@ -1,0 +1,11 @@
+# 忽略node_modules文件夹
+node_modules/
+
+# Next.js 标准忽略项
+.next/
+out/
+build/
+*.log
+.env
+.env.local
+.DS_Store
