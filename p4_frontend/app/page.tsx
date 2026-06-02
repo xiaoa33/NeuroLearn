@@ -1,2 +1,7 @@
-// 首页（/ 路由）
-// 重定向到 /dashboard
+'use client';
+
+import { redirect } from 'next/navigation';
+
+export default function HomePage() {
+  redirect('/dashboard');
+}
