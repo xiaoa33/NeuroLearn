@@ -9,6 +9,7 @@ def review_card(
     quality: int,
     review_time: datetime | None = None,
 ) -> CardData:
+    """SM-2 间隔重复算法核心，含睡眠因子修正。返回更新后的卡片（不修改原对象）。"""
     if quality < 0 or quality > 5:
         raise ValueError(f"quality must be 0-5, got {quality}")
 
@@ -23,10 +24,12 @@ def review_card(
     else:
         prev_interval = 0
 
+    # quality < 3 视为失败，重置复习计数，明天再来
     if quality < 3:
         repetitions = 0
         interval = 1
     else:
+        # SM-2 标准间隔序列：第1次1天，第2次6天，之后按 EF 倍增
         if repetitions == 0:
             interval = 1
         elif repetitions == 1:
@@ -36,12 +39,14 @@ def review_card(
 
         repetitions += 1
 
+    # SM-2 EF 更新公式，下限 1.3 防止间隔无限压缩
     ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
     if ef < 1.3:
         ef = 1.3
 
     hour = review_time.hour
     sleep_bonus = False
+    # 睡前学习（21-23时）→ 次日早7点复习，利用睡眠记忆巩固效应（Stickgold, 2005）
     if 21 <= hour <= 23:
         sleep_bonus = True
         next_review = review_time.replace(hour=7, minute=0, second=0, microsecond=0) + timedelta(days=1)
@@ -50,6 +55,7 @@ def review_card(
 
     stability = card.stability
     if sleep_bonus:
+        # 睡眠巩固奖励：稳定性提升 20%，延缓下次遗忘速度
         stability = stability * 1.2
 
     strength = math.exp(-interval / max(stability, 0.01))
@@ -72,6 +78,7 @@ def review_card(
 
 
 def get_memory_strength(card: CardData, at_time: datetime | None = None) -> float:
+    """实时计算记忆保留率 R(t) = e^(-t/S)。卡片从未复习时直接返回存储值。"""
     if at_time is None:
         at_time = datetime.now()
     if card.last_reviewed_at is None:

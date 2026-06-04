@@ -3,15 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import type { QuestionResponse, AnswerResult } from '@/lib/api';
 import { getDifficultyLabel, getDifficultyColor } from '@/lib/utils';
-import { Check, X, Lightbulb } from 'lucide-react';
+import { Check, X, Lightbulb, ChevronRight } from 'lucide-react';
 
 interface QuestionCardProps {
   question: QuestionResponse;
   onAnswer: (answer: string, timeMs: number) => Promise<AnswerResult>;
   onResult: (result: AnswerResult) => void;
+  onNext: (nextDifficulty: number) => void;
 }
 
-export function QuestionCard({ question, onAnswer, onResult }: QuestionCardProps) {
+export function QuestionCard({ question, onAnswer, onResult, onNext }: QuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState<AnswerResult | null>(null);
@@ -28,64 +29,64 @@ export function QuestionCard({ question, onAnswer, onResult }: QuestionCardProps
 
   const handleSelectAnswer = async (answer: string) => {
     if (showResult) return;
-    
     setSelectedAnswer(answer);
     const timeMs = Date.now() - startTimeRef.current;
-    
     const answerResult = await onAnswer(answer, timeMs);
     setResult(answerResult);
     setShowResult(true);
     onResult(answerResult);
-    
     if (answerResult.is_correct) {
       setShowScore(true);
       setTimeout(() => setShowScore(false), 1500);
     }
   };
 
-  const difficultyColor = getDifficultyColor(question.difficulty);
-  const options = question.options || ['A', 'B', 'C', 'D'];
-
-  const getOptionLabel = (index: number) => {
-    return String.fromCharCode(65 + index);
+  const handleNext = () => {
+    if (result) {
+      onNext(result.next_difficulty);
+    }
   };
 
+  const difficultyColor = getDifficultyColor(question.difficulty);
+  const options = question.options || ['A', 'B', 'C', 'D'];
+  const getOptionLabel = (index: number) => String.fromCharCode(65 + index);
+  const stripOptionPrefix = (text: string) =>
+    text.replace(/^[A-Da-d][.、．\s]\s*/, '').trim();
+
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl mx-auto">
+    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl mx-auto relative">
       {showScore && result?.is_correct && (
-        <div className="absolute top-4 right-4 animate-float-up text-green-500 font-bold text-2xl">
+        <div className="absolute top-4 right-4 animate-float-up text-green-500 font-bold text-2xl pointer-events-none">
           +10
         </div>
       )}
-      
+
       <div className="flex items-center justify-between mb-6">
-        <span 
+        <span
           className="px-3 py-1 rounded-full text-xs font-medium"
           style={{ backgroundColor: `${difficultyColor}15`, color: difficultyColor }}
         >
           {getDifficultyLabel(question.difficulty)}
         </span>
-        <span className="text-sm text-gray-500">
-          第 {question.id} 题
-        </span>
+        <span className="text-sm text-gray-500">第 {question.id} 题</span>
       </div>
-      
+
       <h2 className="text-xl font-semibold text-gray-800 mb-8 text-center">
         {question.stem}
       </h2>
-      
+
       <div className="space-y-3">
         {options.map((option, index) => {
           const label = getOptionLabel(index);
           const isSelected = selectedAnswer === label;
           const isCorrect = showResult && result?.correct_answer === label;
           const isWrong = showResult && isSelected && !isCorrect;
-          
+
           let buttonClass = 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700';
           if (isCorrect) buttonClass = 'bg-green-50 border-green-500 text-green-700';
           if (isWrong) buttonClass = 'bg-red-50 border-red-500 text-red-700';
           if (isSelected && !showResult) buttonClass = 'bg-primary-50 border-primary-500 text-primary-700';
-          
+
           return (
             <button
               key={label}
@@ -93,7 +94,7 @@ export function QuestionCard({ question, onAnswer, onResult }: QuestionCardProps
               disabled={showResult}
               className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 flex items-center gap-4 ${buttonClass}`}
             >
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+              <span className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${
                 isCorrect ? 'bg-green-500 text-white' :
                 isWrong ? 'bg-red-500 text-white' :
                 isSelected ? 'bg-primary-500 text-white' :
@@ -103,22 +104,51 @@ export function QuestionCard({ question, onAnswer, onResult }: QuestionCardProps
                  isWrong && showResult ? <X className="w-4 h-4" /> :
                  label}
               </span>
-              <span className="flex-1">{option}</span>
+              <span className="flex-1">{stripOptionPrefix(option)}</span>
             </button>
           );
         })}
       </div>
-      
-      {showResult && result?.explanation && (
-        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl animate-fade-in">
+
+      {/* 答题结果反馈 */}
+      {showResult && result && (
+        <div className={`mt-6 p-4 rounded-xl border animate-fade-in ${
+          result.is_correct
+            ? 'bg-green-50 border-green-200'
+            : 'bg-red-50 border-red-200'
+        }`}>
           <div className="flex items-start gap-3">
-            <Lightbulb className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-amber-800 mb-1">解析</p>
-              <p className="text-sm text-amber-700">{result.explanation}</p>
+            {result.is_correct ? (
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <p className={`font-medium mb-1 ${result.is_correct ? 'text-green-800' : 'text-red-800'}`}>
+                {result.is_correct ? '回答正确！' : `回答错误，正确答案是 ${result.correct_answer}`}
+              </p>
+              {result.explanation && (
+                <div className="mt-2 flex items-start gap-2">
+                  <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className={`text-sm ${result.is_correct ? 'text-green-700' : 'text-red-700'}`}>
+                    {result.explanation}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* 下一题按钮 */}
+      {showResult && (
+        <button
+          onClick={handleNext}
+          className="mt-6 w-full py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors flex items-center justify-center gap-2"
+        >
+          下一题
+          <ChevronRight className="w-5 h-5" />
+        </button>
       )}
     </div>
   );

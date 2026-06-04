@@ -50,7 +50,7 @@ export function DifficultyBadge({ difficulty, previousDifficulty }: DifficultyBa
       </div>
       
       {showBubble && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-3 py-2 rounded-lg animate-fade-in">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-2 rounded-lg animate-fade-in whitespace-nowrap z-50 shadow-lg">
           {bubbleMessage}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full border-4 border-transparent border-t-gray-800" />
         </div>

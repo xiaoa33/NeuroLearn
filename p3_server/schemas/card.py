@@ -12,7 +12,7 @@ class CardResponse(BaseModel):
     chapter: int
     difficulty: int = Field(ge=1, le=3, description="1基础/2理解/3应用")
     memory_strength: float = Field(ge=0.0, le=1.0)
-    stability: float = Field(ge=1.0)
+    stability: float = Field(ge=0.0)
     repetitions: int = Field(ge=0)
     next_review_at: datetime
     last_reviewed_at: Optional[datetime] = None

@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { getDashboardSummary, getCardCurves, type DashboardSummary, type CurveResponse } from '@/lib/api';
 import { ForgettingCurve } from '@/components/charts/ForgettingCurve';
 import { MemoryHeatmap } from '@/components/charts/MemoryHeatmap';
-import { getMemoryStrengthColor, getStateLabel } from '@/lib/utils';
-import { Calendar, Flame, Brain, Clock, Target, BookOpen, TrendingUp } from 'lucide-react';
+import { getStateLabel } from '@/lib/utils';
+import Link from 'next/link';
+import { Calendar, Flame, Clock, Target, BookOpen, TrendingUp, Brain } from 'lucide-react';
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -54,7 +55,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -65,9 +66,9 @@ export default function DashboardPage() {
               <Clock className="w-6 h-6 text-orange-500" />
             </div>
           </div>
-          <a href="/review" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">
+          <Link href="/review" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">
             去复习 →
-          </a>
+          </Link>
         </div>
 
         <div className="bg-white rounded-xl p-5 shadow-sm">
@@ -86,26 +87,6 @@ export default function DashboardPage() {
         <div className="bg-white rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">整体记忆强度</p>
-              <p className="text-2xl font-bold mt-1" style={{ color: getMemoryStrengthColor(summary?.overall_memory_strength || 0) }}>
-                {((summary?.overall_memory_strength || 0) * 100).toFixed(0)}%
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-              <Brain className="w-6 h-6 text-blue-500" />
-            </div>
-          </div>
-          <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${(summary?.overall_memory_strength || 0) * 100}%`, backgroundColor: getMemoryStrengthColor(summary?.overall_memory_strength || 0) }}
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
               <p className="text-sm text-gray-500">累计答题</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">{summary?.total_questions_answered || 0}</p>
             </div>
@@ -113,9 +94,9 @@ export default function DashboardPage() {
               <Target className="w-6 h-6 text-green-500" />
             </div>
           </div>
-          <a href="/quiz" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">
+          <Link href="/quiz" className="text-sm text-primary-600 hover:text-primary-700 mt-3 inline-block">
             去测验 →
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -130,7 +111,7 @@ export default function DashboardPage() {
           今日任务
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+          <Link href="/review" className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-primary-50 transition-colors cursor-pointer">
             <div className="w-6 h-6 rounded-full border-2 border-primary-500 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-primary-500" />
             </div>
@@ -138,10 +119,10 @@ export default function DashboardPage() {
               <p className="font-medium text-gray-800">复习到期卡片</p>
               <p className="text-sm text-gray-500">提升记忆强度，防止遗忘</p>
             </div>
-            <span className="text-sm font-medium text-primary-600">{summary?.due_cards_today || 0} 张</span>
-          </div>
-          
-          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+            <span className="text-sm font-medium text-primary-600">{summary?.due_cards_today || 0} 张 →</span>
+          </Link>
+
+          <Link href="/quiz" className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-green-50 transition-colors cursor-pointer">
             <div className="w-6 h-6 rounded-full border-2 border-green-500 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-green-500" />
             </div>
@@ -149,10 +130,10 @@ export default function DashboardPage() {
               <p className="font-medium text-gray-800">完成每日测验</p>
               <p className="text-sm text-gray-500">检验学习效果，巩固知识</p>
             </div>
-            <span className="text-sm font-medium text-green-600">5 题</span>
-          </div>
-          
-          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+            <span className="text-sm font-medium text-green-600">去测验 →</span>
+          </Link>
+
+          <Link href="/insights" className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-purple-50 transition-colors cursor-pointer">
             <div className="w-6 h-6 rounded-full border-2 border-purple-500 flex items-center justify-center">
               <Brain className="w-4 h-4 text-purple-500" />
             </div>
@@ -161,7 +142,7 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-500">获取个性化学习建议</p>
             </div>
             <span className="text-sm font-medium text-purple-600">查看 →</span>
-          </div>
+          </Link>
         </div>
       </div>
     </div>

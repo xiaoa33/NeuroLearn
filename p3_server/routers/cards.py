@@ -2,23 +2,15 @@ from fastapi import APIRouter, Query, HTTPException
 from typing import Optional
 
 from ..schemas.card import CardResponse, ReviewRequest, ReviewResponse, CurveResponse
-from ..services.card_service import get_next_card, review_card_service, get_curves
+from ..services.card_service import get_next_card, review_card_service, get_curves, get_review_queue
 
 router = APIRouter(prefix="/api/cards", tags=["cards"])
 
 
 @router.get("/next", response_model=CardResponse)
-async def get_next_card_route(chapter: Optional[int] = Query(None)):
-    """
-    获取下一张需要复习的卡片
-    
-    Args:
-        chapter: 章节筛选，可选
-    
-    Returns:
-        卡片数据
-    """
-    card_data = get_next_card(chapter)
+async def get_next_card_route(chapter: Optional[int] = Query(None), mode: Optional[str] = Query(None)):
+    """获取下一张卡片。mode: learn=新卡, review=已学到期卡, 不传=原行为"""
+    card_data = get_next_card(chapter, mode)
     if not card_data:
         raise HTTPException(status_code=404, detail="没有找到需要复习的卡片")
     
@@ -59,6 +51,29 @@ async def review_card_route(card_id: int, body: ReviewRequest):
         new_memory_strength=result["new_memory_strength"],
         interval_days=result["interval_days"]
     )
+
+
+@router.get("/review-queue", response_model=list[CardResponse])
+async def get_review_queue_route(limit: int = Query(50, ge=1, le=200), chapter: Optional[int] = Query(None)):
+    """返回已学习且到期的待复习卡片，按章节可筛选。"""
+    cards = get_review_queue(limit, chapter)
+    return [
+        CardResponse(
+            id=c["id"],
+            concept=c["concept"],
+            front=c["front"],
+            back=c["back"],
+            chapter=c["chapter"],
+            difficulty=c["difficulty"],
+            memory_strength=c["memory_strength"],
+            stability=c["stability"],
+            repetitions=c["repetitions"],
+            next_review_at=c["next_review_at"],
+            last_reviewed_at=c.get("last_reviewed_at"),
+            related_concepts=c.get("related_concepts"),
+        )
+        for c in cards
+    ]
 
 
 @router.get("/curve", response_model=CurveResponse)

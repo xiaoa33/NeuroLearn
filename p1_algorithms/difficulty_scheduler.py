@@ -1,11 +1,18 @@
 from .schemas import StateEnum
 
 
+# 心流理论（Csikszentmihalyi, 1990）：难度与能力匹配时进入最优学习状态
 class DifficultyScheduler:
+    """
+    自适应难度调度器。维护最近 3 题滑动窗口，结合状态枚举动态调整难度级别。
+    难度分三级：1=简单 / 2=中等（默认）/ 3=困难。
+    """
+
     def __init__(self, current_level: int = 2):
         if current_level not in (1, 2, 3):
             raise ValueError(f"current_level must be 1/2/3, got {current_level}")
         self.current_level = current_level
+        # 窗口固定为 3 题：足以反映近期趋势，又不会对单题噪声过度响应
         self.window: list[bool] = []
         self.streak_correct: int = 0
         self.streak_wrong: int = 0
@@ -22,13 +29,13 @@ class DifficultyScheduler:
             self.streak_correct = 0
 
     def next_question(self, state: StateEnum) -> int:
-        # 强制降级：连续答错 3 题
+        # 强制降级：连续答错 3 题，优先于窗口逻辑，帮助用户建立信心
         if self.streak_wrong >= 3:
             self.current_level = 1
             self.streak_wrong = 0
             return self.current_level
 
-        # 窗口未满 3 题，维持当前难度
+        # 窗口未满 3 题，数据不足以判断趋势，维持当前难度
         if len(self.window) < 3:
             return self.current_level
 
@@ -63,11 +70,12 @@ def next_difficulty(
     state: StateEnum,
     recent: list[bool],
 ) -> tuple[int, str]:
+    """P3 调用的无状态入口。接受序列化的调度器状态，批量录入结果后返回推荐难度和原因文本。"""
     instance = DifficultyScheduler.from_dict(sched)
     for r in recent:
         instance.record_result(r)
 
-    # 在调用 next_question 前计算 reason
+    # reason 需在 next_question 修改 current_level 前计算，否则状态已变
     reason = ""
     if instance.streak_wrong >= 3:
         reason = "连续答错3题，已降至简单难度"

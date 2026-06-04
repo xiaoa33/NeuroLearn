@@ -4,6 +4,7 @@ import type { StateEnum } from '@/lib/api';
 interface SessionStore {
   sessionId: number | null;
   currentState: StateEnum;
+  stateSuggestion: string;
   duration: number;
   cardsReviewed: number;
   questionsAnswered: number;
@@ -11,6 +12,7 @@ interface SessionStore {
   samArousal: number;
   setSessionId: (id: number) => void;
   setCurrentState: (state: StateEnum) => void;
+  setStateSuggestion: (suggestion: string) => void;
   incrementDuration: () => void;
   resetDuration: () => void;
   incrementCardsReviewed: () => void;
@@ -22,15 +24,18 @@ interface SessionStore {
 export const useSessionStore = create<SessionStore>((set) => ({
   sessionId: null,
   currentState: 'flow',
+  stateSuggestion: '',
   duration: 0,
   cardsReviewed: 0,
   questionsAnswered: 0,
   samValence: 5,
   samArousal: 5,
-  
+
   setSessionId: (id) => set({ sessionId: id }),
-  
+
   setCurrentState: (state) => set({ currentState: state }),
+
+  setStateSuggestion: (suggestion) => set({ stateSuggestion: suggestion }),
   
   incrementDuration: () => set((state) => ({ duration: state.duration + 1 })),
   
@@ -45,6 +50,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   resetSession: () => set({
     sessionId: null,
     currentState: 'flow',
+    stateSuggestion: '',
     duration: 0,
     cardsReviewed: 0,
     questionsAnswered: 0,

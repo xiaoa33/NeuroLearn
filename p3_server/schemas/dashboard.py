@@ -8,10 +8,10 @@ from .state import StateEnum
 class DashboardSummary(BaseModel):
     due_cards_today: int = Field(description="今日到期卡片数")
     streak_days: int = Field(description="连续学习天数")
-    overall_memory_strength: float = Field(ge=0.0, le=1.0, description="整体记忆强度")
-    chapter_strengths: dict[int, float] = Field(description="各章节平均记忆强度")
+    chapter_strengths: dict[int, float] = Field(description="各章节实时记忆强度（仅已学习卡片）")
     recent_states: list[dict] = Field(default_factory=list, description="最近状态记录")
     total_cards: int = 0
+    total_cards_reviewed: int = 0
     total_questions_answered: int = 0
 
 

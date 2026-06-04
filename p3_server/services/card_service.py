@@ -11,19 +11,14 @@ from p1_algorithms.schemas import CardData
 from p2_knowledge.db_service import get_next_card as db_get_next_card
 from p2_knowledge.db_service import update_card_memory as db_update_card_memory
 from p2_knowledge.db_service import get_all_curves
+from p2_knowledge.db_service import get_review_queue as db_get_review_queue
 
 
-def get_next_card(chapter: Optional[int] = None) -> Optional[Dict[str, Any]]:
+def get_next_card(chapter: Optional[int] = None, mode: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
-    获取下一张需要复习的卡片
-    
-    Args:
-        chapter: 章节筛选，None 表示所有章节
-    
-    Returns:
-        卡片数据字典，或 None
+    获取下一张卡片。mode: 'learn'=新卡, 'review'=已学且到期, None=原行为
     """
-    card_data = db_get_next_card(chapter)
+    card_data = db_get_next_card(chapter, mode)
     if not card_data:
         return None
     
@@ -62,15 +57,15 @@ def review_card_service(card_id: int, quality: int, session_id: int) -> Optional
     Returns:
         包含新记忆参数的字典，或 None
     """
-    from p2_knowledge.db_service import SessionLocal
+    from p2_knowledge.database import SessionLocal
     from p2_knowledge.models.card import Card
-    
+
     db = SessionLocal()
     try:
         card = db.query(Card).filter(Card.id == card_id).first()
         if not card:
             return None
-        
+
         # 构造 CardData 对象
         card_obj = CardData(
             id=card.id,
@@ -88,31 +83,36 @@ def review_card_service(card_id: int, quality: int, session_id: int) -> Optional
             related_concepts=card.related_concepts
         )
         
-        # 使用记忆引擎计算新参数
+        # 使用记忆引擎计算新参数（返回 CardData 对象，用属性访问）
         result = review_card(card_obj, quality)
-        
+
         # 更新数据库
         updates = {
-            "next_review_at": result["next_review_at"],
-            "memory_strength": result["memory_strength"],
-            "stability": result["stability"],
-            "easiness_factor": result["easiness_factor"],
-            "repetitions": result["repetitions"],
-            "last_reviewed_at": datetime.utcnow()
+            "next_review_at": result.next_review_at,
+            "memory_strength": result.memory_strength,
+            "stability": result.stability,
+            "easiness_factor": result.easiness_factor,
+            "repetitions": result.repetitions,
+            "last_reviewed_at": result.last_reviewed_at,
         }
-        
+
         db_update_card_memory(card_id, updates)
-        
+
         # 计算间隔天数
-        interval_days = (result["next_review_at"] - datetime.utcnow()).days
-        
+        interval_days = (result.next_review_at - datetime.utcnow()).days
+
         return {
-            "next_review_at": result["next_review_at"],
-            "new_memory_strength": result["memory_strength"],
-            "interval_days": max(1, interval_days)
+            "next_review_at": result.next_review_at,
+            "new_memory_strength": result.memory_strength,
+            "interval_days": max(1, interval_days),
         }
     finally:
         db.close()
+
+
+def get_review_queue(limit: int = 50, chapter: Optional[int] = None) -> list:
+    """返回待复习卡片列表，直接透传 db_service 结果。"""
+    return db_get_review_queue(limit, chapter)
 
 
 def get_curves() -> Dict[str, Any]:

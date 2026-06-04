@@ -5,7 +5,7 @@ import { getInsightSuggestion, getStateHistory, getDashboardSummary, type Insigh
 import { RadarChartComponent } from '@/components/charts/RadarChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStateLabel, getStateColor } from '@/lib/utils';
-import { Brain, Sparkles, TrendingUp, Award, Clock, BookOpen, Activity } from 'lucide-react';
+import { Brain, Sparkles, Award, Clock, BookOpen, Activity } from 'lucide-react';
 
 export default function InsightsPage() {
   const [insight, setInsight] = useState<InsightResponse | null>(null);
@@ -16,20 +16,17 @@ export default function InsightsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const [insightData, historyData, summaryData] = await Promise.all([
-          getInsightSuggestion(),
-          getStateHistory(),
-          getDashboardSummary(),
-        ]);
-        setInsight(insightData);
-        setHistory(historyData);
-        setSummary(summaryData);
-      } catch (error) {
-        console.error('Failed to fetch insights data:', error);
-      } finally {
-        setLoading(false);
-      }
+      // 三个请求独立发，任一失败不影响其他
+      const [insightResult, historyResult, summaryResult] = await Promise.allSettled([
+        getInsightSuggestion(),
+        getStateHistory(),
+        getDashboardSummary(),
+      ]);
+      if (insightResult.status === 'fulfilled') setInsight(insightResult.value);
+      if (historyResult.status === 'fulfilled') setHistory(historyResult.value);
+      if (summaryResult.status === 'fulfilled') setSummary(summaryResult.value);
+      else console.error('Failed to fetch summary:', summaryResult.reason);
+      setLoading(false);
     };
 
     fetchData();
@@ -60,8 +57,8 @@ export default function InsightsPage() {
     questionsAnswered: record.questions_answered,
   })) || [];
 
-  const totalCardsReviewed = history?.records.reduce((sum, r) => sum + r.cards_reviewed, 0) || 0;
-  const totalQuestionsAnswered = history?.records.reduce((sum, r) => sum + r.questions_answered, 0) || 0;
+  const totalCardsReviewed = summary?.total_cards_reviewed || 0;
+  const totalQuestionsAnswered = summary?.total_questions_answered || 0;
   const avgState = history?.records.length > 0
     ? history.records[history.records.length - 1].state
     : 'flow';
@@ -98,7 +95,7 @@ export default function InsightsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -132,20 +129,6 @@ export default function InsightsPage() {
               <p className="text-sm text-gray-500">近期状态</p>
               <p className="text-xl font-bold" style={{ color: getStateColor(avgState) }}>
                 {getStateLabel(avgState)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">整体强度</p>
-              <p className="text-xl font-bold text-gray-800">
-                {((summary?.overall_memory_strength || 0) * 100).toFixed(0)}%
               </p>
             </div>
           </div>

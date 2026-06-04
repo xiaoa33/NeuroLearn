@@ -1,5 +1,6 @@
 import sys
 import os
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 # 添加项目根路径
@@ -34,27 +35,42 @@ def report_state(
     Returns:
         包含状态、评分和建议的字典
     """
-    # 构造 P1 算法的数据类
+    # 构造 P1 算法的数据类（字段名以 p1_algorithms/schemas.py 为准）
     behavior_signal = P1BehaviorSignal(
-        correct_rate=behavior["correct_rate"],
-        avg_time_zscore=behavior.get("avg_time_zscore"),
-        unfocus_count=behavior.get("unfocus_count", 0)
+        accuracy=behavior["correct_rate"],
+        avg_time_zscore=behavior.get("avg_time_zscore") or 0.0,
+        unfocus_count=behavior.get("unfocus_count", 0),
+        pause_duration=0.0,
     )
-    
+
     sam_score = P1SAMScore(
         valence=sam["valence"],
-        arousal=sam["arousal"]
+        arousal=sam["arousal"],
     )
-    
+
     camera_score = None
     if camera:
         camera_score = P1CameraScore(
-            attention=camera.get("attention"),
-            blink_rate=camera.get("blink_rate")
+            focus_score=camera.get("attention", 0.5),
+            blink_rate=camera.get("blink_rate", 15.0),
+            head_offset=camera.get("head_offset", 0.0),
         )
     
+    # 计算会话时长（分钟），用于疲劳判断
+    session_duration_minutes = 0.0
+    if session_id:
+        from p2_knowledge.database import SessionLocal
+        from p2_knowledge.models.session import LearningSession
+        _db = SessionLocal()
+        try:
+            _session = _db.query(LearningSession).filter(LearningSession.id == session_id).first()
+            if _session and _session.started_at:
+                session_duration_minutes = (datetime.utcnow() - _session.started_at).total_seconds() / 60
+        finally:
+            _db.close()
+
     # 调用状态评分算法
-    state, total_score, weights = score_state(behavior_signal, sam_score, camera_score)
+    state, total_score, weights = score_state(behavior_signal, sam_score, camera_score, session_duration_minutes)
     
     # 生成建议文本
     suggestion_text = _generate_suggestion(state, total_score)
@@ -86,7 +102,7 @@ def get_state_history(n_days: int = 7) -> List[Dict[str, Any]]:
     Returns:
         状态记录列表
     """
-    from p2_knowledge.db_service import SessionLocal
+    from p2_knowledge.database import SessionLocal
     from p2_knowledge.models.session import LearningSession
     from datetime import timedelta, datetime
     

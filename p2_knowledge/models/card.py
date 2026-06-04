@@ -23,8 +23,8 @@ class Card(Base):
     difficulty = Column(Integer, nullable=False, comment="卡片难度：1=简单/2=中等/3=困难")
 
     # SM-2 记忆算法核心参数
-    memory_strength = Column(Float, default=0.0, comment="记忆强度")
-    stability = Column(Float, default=0.0, comment="记忆稳定性（遗忘曲线核心参数）")
+    memory_strength = Column(Float, default=1.0, comment="记忆强度")
+    stability = Column(Float, default=1.0, comment="记忆稳定性（遗忘曲线核心参数）")
     easiness_factor = Column(Float, default=2.5, comment="易度因子（初始值2.5）")
     repetitions = Column(Integer, default=0, comment="累计复习次数")
 

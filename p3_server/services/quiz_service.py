@@ -39,7 +39,7 @@ def get_next_question(chapter: int, difficulty: int, session_id: Optional[int] =
     return question_data
 
 
-def answer_question(question_id: int, answer: str, time_ms: int, session_id: int, state: Optional[StateEnum] = None) -> Optional[Dict[str, Any]]:
+def answer_question(question_id: int, answer: str, time_ms: int, session_id: int, state: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     处理用户答题，判断对错，更新难度
     
@@ -53,7 +53,7 @@ def answer_question(question_id: int, answer: str, time_ms: int, session_id: int
     Returns:
         包含答题结果的字典，或 None
     """
-    from p2_knowledge.db_service import SessionLocal
+    from p2_knowledge.database import SessionLocal
     from p2_knowledge.models.question import Question
     
     db = SessionLocal()
@@ -82,10 +82,13 @@ def answer_question(question_id: int, answer: str, time_ms: int, session_id: int
             "window": session_answers[session_id][:-3]
         }
         
-        if not state:
-            state = StateEnum.flow
-        
-        next_diff, reason = next_difficulty(sched, state, recent)
+        # 将前端传来的字符串映射到 StateEnum，无效值兜底为 flow
+        try:
+            state_enum = StateEnum(state) if state else StateEnum.flow
+        except ValueError:
+            state_enum = StateEnum.flow
+
+        next_diff, reason = next_difficulty(sched, state_enum, recent)
         
         # 保存答题记录
         save_response(session_id, question_id, is_correct, time_ms, current_difficulty)

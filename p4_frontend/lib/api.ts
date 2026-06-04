@@ -54,6 +54,7 @@ export interface AnswerRequest {
   answer: string;
   time_ms: number;
   session_id: number;
+  state?: string;
 }
 
 export interface AnswerResult {
@@ -132,10 +133,10 @@ export interface SessionEndResponse {
 export interface DashboardSummary {
   due_cards_today: number;
   streak_days: number;
-  overall_memory_strength: number;
   chapter_strengths: Record<number, number>;
   recent_states: Record<string, unknown>[];
   total_cards: number;
+  total_cards_reviewed: number;
   total_questions_answered: number;
 }
 
@@ -161,9 +162,18 @@ async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
   return response.json();
 }
 
-export async function getNextCard(chapter?: number): Promise<CardResponse> {
-  const params = chapter ? `?chapter=${chapter}` : '';
-  return apiFetch<CardResponse>(`/api/cards/next${params}`);
+export async function getReviewQueue(limit = 50, chapter?: number): Promise<CardResponse[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (chapter) params.set('chapter', String(chapter));
+  return apiFetch<CardResponse[]>(`/api/cards/review-queue?${params}`);
+}
+
+export async function getNextCard(chapter?: number, mode?: 'learn' | 'review'): Promise<CardResponse> {
+  const params = new URLSearchParams();
+  if (chapter) params.set('chapter', String(chapter));
+  if (mode) params.set('mode', mode);
+  const q = params.toString();
+  return apiFetch<CardResponse>(`/api/cards/next${q ? '?' + q : ''}`);
 }
 
 export async function reviewCard(id: number, quality: number, sessionId: number): Promise<ReviewResponse> {
@@ -182,8 +192,8 @@ export async function getNextQuestion(chapter: number, difficulty: number): Prom
   return apiFetch<QuestionResponse>(`/api/questions/next?chapter=${chapter}&difficulty=${difficulty}`);
 }
 
-export async function submitAnswer(id: number, answer: string, timeMs: number, sessionId: number): Promise<AnswerResult> {
-  const body: AnswerRequest = { answer, time_ms: timeMs, session_id: sessionId };
+export async function submitAnswer(id: number, answer: string, timeMs: number, sessionId: number, state?: string): Promise<AnswerResult> {
+  const body: AnswerRequest = { answer, time_ms: timeMs, session_id: sessionId, state };
   return apiFetch<AnswerResult>(`/api/questions/${id}/answer`, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -207,10 +217,18 @@ export async function startSession(): Promise<SessionStartResponse> {
   });
 }
 
-export async function endSession(id: number, samValence?: number, samArousal?: number): Promise<SessionEndResponse> {
+export async function endSession(
+  id: number,
+  samValence?: number,
+  samArousal?: number,
+  cardsReviewed?: number,
+  questionsAnswered?: number,
+): Promise<SessionEndResponse> {
   const body: SessionEndRequest = {
     sam_valence: samValence,
     sam_arousal: samArousal,
+    cards_reviewed: cardsReviewed,
+    questions_answered: questionsAnswered,
   };
   return apiFetch<SessionEndResponse>(`/api/sessions/${id}/end`, {
     method: 'POST',

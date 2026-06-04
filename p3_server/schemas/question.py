@@ -17,6 +17,7 @@ class AnswerRequest(BaseModel):
     answer: str
     time_ms: int = Field(ge=0, description="答题耗时（毫秒）")
     session_id: int
+    state: Optional[str] = Field(default=None, description="当前学习状态（flow/anxiety/boredom/confusion/fatigue）")
 
 
 class AnswerResult(BaseModel):

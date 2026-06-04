@@ -50,7 +50,7 @@ async def answer_question_route(question_id: int, body: AnswerRequest):
     Returns:
         答题结果和下一题难度建议
     """
-    result = answer_question(question_id, body.answer, body.time_ms, body.session_id)
+    result = answer_question(question_id, body.answer, body.time_ms, body.session_id, state=body.state)
     if not result:
         raise HTTPException(status_code=404, detail="题目不存在")
     

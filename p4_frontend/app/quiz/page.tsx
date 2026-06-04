@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getNextQuestion, submitAnswer, type QuestionResponse, type AnswerResult } from '@/lib/api';
 import { useSessionStore } from '@/store/sessionStore';
+import { recordAnswer } from '@/hooks/useBehavior';
 import { QuestionCard } from '@/components/quiz/QuestionCard';
 import { DifficultyBadge } from '@/components/quiz/DifficultyBadge';
-import { getChapterName } from '@/lib/utils';
-import { HelpCircle, Loader2, Trophy } from 'lucide-react';
+import { SAMSlider } from '@/components/state/SAMSlider';
+import { HelpCircle, Loader2 } from 'lucide-react';
 
-const chapters = [
+const CHAPTERS = [
   { id: 1, name: '绪论' },
   { id: 2, name: '方法与技术' },
   { id: 3, name: '细胞机制与认知' },
@@ -30,30 +31,31 @@ export default function QuizPage() {
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const { sessionId, incrementQuestionsAnswered } = useSessionStore();
+  const { sessionId, currentState, incrementQuestionsAnswered } = useSessionStore();
 
-  useEffect(() => {
-    fetchNextQuestion();
-  }, [currentChapter, currentDifficulty]);
-
-  const fetchNextQuestion = async () => {
+  const fetchNextQuestion = useCallback(async (chapter: number, difficulty: number) => {
     setLoading(true);
     try {
-      const nextQuestion = await getNextQuestion(currentChapter, currentDifficulty);
+      const nextQuestion = await getNextQuestion(chapter, difficulty);
       setQuestion(nextQuestion);
     } catch (error) {
       console.error('Failed to fetch next question:', error);
+      setQuestion(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNextQuestion(currentChapter, currentDifficulty);
+  }, [currentChapter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAnswer = async (answer: string, timeMs: number): Promise<AnswerResult> => {
     if (!question || !sessionId) {
       return { is_correct: false, correct_answer: '', next_difficulty: currentDifficulty };
     }
-
-    const result = await submitAnswer(question.id, answer, timeMs, sessionId);
+    const result = await submitAnswer(question.id, answer, timeMs, sessionId, currentState);
+    recordAnswer(result.is_correct, timeMs);
     incrementQuestionsAnswered();
     return result;
   };
@@ -64,11 +66,20 @@ export default function QuizPage() {
       setCorrectCount(prev => prev + 1);
       setScore(prev => prev + 10);
     }
-    
-    if (result.next_difficulty !== currentDifficulty) {
+  };
+
+  const handleNext = (nextDifficulty: number) => {
+    if (nextDifficulty !== currentDifficulty) {
       setPreviousDifficulty(currentDifficulty);
-      setCurrentDifficulty(result.next_difficulty);
+      setCurrentDifficulty(nextDifficulty);
     }
+    fetchNextQuestion(currentChapter, nextDifficulty);
+  };
+
+  const handleChapterChange = (chapterId: number) => {
+    setCurrentChapter(chapterId);
+    setCurrentDifficulty(2);
+    setPreviousDifficulty(undefined);
   };
 
   if (loading) {
@@ -111,15 +122,12 @@ export default function QuizPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-          {chapters.map(chapter => (
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2 flex-1 min-w-0" style={{ scrollbarWidth: 'thin' }}>
+          {CHAPTERS.map(chapter => (
             <button
               key={chapter.id}
-              onClick={() => {
-                setCurrentChapter(chapter.id);
-                setCurrentDifficulty(2);
-              }}
+              onClick={() => handleChapterChange(chapter.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 currentChapter === chapter.id
                   ? 'bg-primary-500 text-white'
@@ -130,40 +138,21 @@ export default function QuizPage() {
             </button>
           ))}
         </div>
-        <DifficultyBadge difficulty={currentDifficulty} previousDifficulty={previousDifficulty} />
+        <div className="flex-shrink-0">
+          <DifficultyBadge difficulty={currentDifficulty} previousDifficulty={previousDifficulty} />
+        </div>
       </div>
 
       <QuestionCard
         question={question}
         onAnswer={handleAnswer}
         onResult={handleResult}
+        onNext={handleNext}
       />
 
-      <div className="mt-6 flex justify-center gap-4">
-        <button
-          onClick={() => {
-            if (currentDifficulty > 1) {
-              setPreviousDifficulty(currentDifficulty);
-              setCurrentDifficulty(currentDifficulty - 1);
-            }
-          }}
-          disabled={currentDifficulty <= 1}
-          className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          降低难度
-        </button>
-        <button
-          onClick={() => {
-            if (currentDifficulty < 3) {
-              setPreviousDifficulty(currentDifficulty);
-              setCurrentDifficulty(currentDifficulty + 1);
-            }
-          }}
-          disabled={currentDifficulty >= 3}
-          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          提升难度
-        </button>
+      <div className="mt-6 max-w-2xl mx-auto">
+        <h3 className="text-sm font-medium text-gray-600 mb-3 text-center">自我评估状态</h3>
+        <SAMSlider />
       </div>
     </div>
   );

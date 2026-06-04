@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { LayoutDashboard, BookOpen, HelpCircle, RefreshCw, BarChart3 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
@@ -24,7 +25,7 @@ export function Sidebar() {
           const isActive = pathname === item.path;
           
           return (
-            <a
+            <Link
               key={item.path}
               href={item.path}
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 group relative ${
@@ -37,7 +38,7 @@ export function Sidebar() {
               <span className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
                 {item.label}
               </span>
-            </a>
+            </Link>
           );
         })}
       </nav>

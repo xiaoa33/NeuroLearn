@@ -20,7 +20,7 @@ export function FlipCard({ card, onReview }: FlipCardProps) {
   }, [card.id]);
 
   const handleFlip = () => {
-    if (!selectedQuality) {
+    if (selectedQuality === null) {
       setIsFlipped(!isFlipped);
     }
   };
@@ -35,11 +35,16 @@ export function FlipCard({ card, onReview }: FlipCardProps) {
   const difficultyColor = getDifficultyColor(card.difficulty);
 
   return (
-    <div className="card-container w-full max-w-lg mx-auto perspective-1000">
-      <div 
-        className={`card-inner relative w-full aspect-[4/3] cursor-pointer transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`}
+    <div className="w-full max-w-lg mx-auto" style={{ perspective: '1000px' }}>
+      <div
+        className="relative w-full cursor-pointer"
         onClick={handleFlip}
-        style={{ transformStyle: 'preserve-3d' }}
+        style={{
+          aspectRatio: '4/3',
+          transformStyle: 'preserve-3d',
+          transition: 'transform 0.5s',
+          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}
       >
         <div 
           className="card-front absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 shadow-xl flex flex-col justify-between"
@@ -107,7 +112,7 @@ export function FlipCard({ card, onReview }: FlipCardProps) {
         </div>
       </div>
       
-      {isFlipped && !selectedQuality && (
+      {isFlipped && selectedQuality === null && (
         <div className="mt-6 animate-fade-in">
           <p className="text-center text-gray-500 text-sm mb-4">你掌握得怎么样？</p>
           <div className="flex justify-center gap-3">

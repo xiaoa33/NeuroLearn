@@ -6,7 +6,7 @@ import { formatDuration } from '@/lib/utils';
 import { StateIndicator } from '@/components/state/StateIndicator';
 
 export function TopBar() {
-  const { duration, incrementDuration } = useSessionStore();
+  const { duration, incrementDuration, currentState, stateSuggestion } = useSessionStore();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -18,9 +18,17 @@ export function TopBar() {
 
   return (
     <header className="fixed top-0 left-16 right-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-40">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold text-gray-800">NeuroLearn</h1>
+      <div className="flex items-center gap-3 min-w-0">
+        <h1 className="text-xl font-semibold text-gray-800 flex-shrink-0">NeuroLearn</h1>
         <StateIndicator />
+        {currentState !== 'flow' && stateSuggestion && (
+          <span
+            key={stateSuggestion}
+            className="text-xs text-gray-400 truncate max-w-xs animate-fade-in hidden md:block"
+          >
+            {stateSuggestion}
+          </span>
+        )}
       </div>
       
       <div className="flex items-center gap-6">

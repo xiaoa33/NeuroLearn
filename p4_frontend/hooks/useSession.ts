@@ -1,46 +1,48 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSessionStore } from '@/store/sessionStore';
-import { startSession, endSession } from '@/lib/api';
+import { startSession } from '@/lib/api';
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export function useSession() {
-  const { sessionId, setSessionId, samValence, samArousal } = useSessionStore();
+  const { sessionId, setSessionId } = useSessionStore();
+  const initialized = useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const initializeSession = async () => {
-      try {
-        const response = await startSession();
-        if (isMounted) {
-          setSessionId(response.session_id);
-        }
-      } catch (error) {
-        console.error('Failed to start session:', error);
-      }
-    };
+    if (initialized.current) return;
+    initialized.current = true;
 
-    initializeSession();
+    if (useSessionStore.getState().sessionId) return;
 
-    const handleBeforeUnload = async () => {
-      if (sessionId) {
-        try {
-          await endSession(sessionId, samValence, samArousal);
-        } catch (error) {
-          console.error('Failed to end session:', error);
-        }
-      }
+    startSession()
+      .then((res) => setSessionId(res.session_id))
+      .catch((err) => console.error('Failed to start session:', err));
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const { sessionId, samValence, samArousal, cardsReviewed, questionsAnswered, currentState } =
+        useSessionStore.getState();
+      if (!sessionId) return;
+
+      // keepalive: true 确保浏览器关闭/跳转时请求仍能完成
+      fetch(`${BASE_URL}/api/sessions/${sessionId}/end`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          final_state: currentState,
+          sam_valence: samValence,
+          sam_arousal: samArousal,
+          cards_reviewed: cardsReviewed,
+          questions_answered: questionsAnswered,
+        }),
+      }).catch(console.error);
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (sessionId) {
-        endSession(sessionId, samValence, samArousal).catch(console.error);
-      }
-    };
-  }, [sessionId, setSessionId, samValence, samArousal]);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   return { sessionId };
 }
