@@ -145,6 +145,13 @@ export interface InsightResponse {
   today_plan: string;
 }
 
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${BASE_URL}${url}`, {
     ...options,
@@ -153,12 +160,12 @@ async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || 'API request failed');
+    throw new ApiError(response.status, error.detail || 'API request failed');
   }
-  
+
   return response.json();
 }
 

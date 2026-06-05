@@ -4,7 +4,7 @@ P3 层访问数据库的唯一入口，严格遵循 README 接口契约 6.2
 所有函数自行管理 db session，调用方无需传入 Session 对象。
 """
 import math
-from sqlalchemy import func, and_, cast, Date
+from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 
@@ -280,13 +280,21 @@ def get_dashboard_summary() -> Dict[str, Any]:
         }
 
         # 连续学习天数：只要当天有打开网站（session 被创建）即算
+        # 用时间区间查询替代 cast(Date)，避免 SQLite 不支持 Date 类型转换的问题
+        # 若今天还未开启会话，从昨天开始计算（今天尚未结束，不应打断连续记录）
+        def has_session_on(day):
+            day_start = datetime(day.year, day.month, day.day, 0, 0, 0)
+            day_end = day_start + timedelta(days=1)
+            return db.query(LearningSession).filter(
+                LearningSession.started_at >= day_start,
+                LearningSession.started_at < day_end,
+            ).first() is not None
+
         consecutive_days = 0
-        for i in range(30):
+        start_offset = 0 if has_session_on(today) else 1
+        for i in range(start_offset, 30 + start_offset):
             day = today - timedelta(days=i)
-            has_session = db.query(LearningSession).filter(
-                cast(LearningSession.started_at, Date) == day,
-            ).first()
-            if has_session:
+            if has_session_on(day):
                 consecutive_days += 1
             else:
                 break

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getNextCard, reviewCard, type CardResponse } from '@/lib/api';
+import { getNextCard, reviewCard, ApiError, type CardResponse } from '@/lib/api';
 import { useSessionStore } from '@/store/sessionStore';
 import { FlipCard } from '@/components/cards/FlipCard';
 import { SAMSlider } from '@/components/state/SAMSlider';
@@ -38,11 +38,11 @@ export default function ReviewPage() {
       const nextCard = await getNextCard(chapter, 'review');
       setCard(nextCard);
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (msg.includes('没有找到') || msg.includes('404')) {
+      if (error instanceof ApiError && error.status === 404) {
         setCard(null);
         setReviewDone(true);
       } else {
+        const msg = error instanceof Error ? error.message : String(error);
         setFetchError(msg);
       }
     } finally {
@@ -127,11 +127,11 @@ export default function ReviewPage() {
         <div className="flex flex-col items-center justify-center h-[40vh]">
           <CheckCircle2 className="w-16 h-16 text-green-400 mb-4" />
           <p className="text-xl font-semibold text-gray-700">
-            {reviewedCount > 0 ? `本章复习完成！共复习了 ${reviewedCount} 张` : '本章暂无待复习卡片'}
+            {reviewedCount > 0 ? `本章复习完成！共复习了 ${reviewedCount} 张` : '没有需要复习的内容'}
           </p>
           <p className="text-gray-400 text-sm mt-2 text-center">
             {reviewedCount === 0
-              ? '请先在「学习」页面学习该章节的卡片，SM-2 算法会在合适时间安排复习'
+              ? '先去学习吧，SM-2 算法会在合适时间安排复习'
               : '记忆已得到强化，下次复习时间由 SM-2 算法自动安排'}
           </p>
           {reviewedCount === 0 && (
